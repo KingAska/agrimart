@@ -18,27 +18,73 @@
     
     <body class="bg-gray-50 flex flex-col min-h-screen text-gray-900 font-sans antialiased">
         
-        <nav class="bg-white shadow-sm sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center">
-                        <a href="/" class="shrink-0 flex items-center gap-2 group">
-                            <div class="bg-green-900 text-white p-2 rounded-lg group-hover:bg-green-700 transition">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            </div>
-                            <span class="font-extrabold text-xl text-green-900 tracking-tight">Agrimart</span>
-                        </a>
+       <nav class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="/" class="shrink-0 flex items-center gap-2 group">
+                    <div class="bg-green-900 text-white p-2 rounded-lg group-hover:bg-green-700 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     </div>
-
-                    <div class="flex items-center space-x-6">
-                        <a href="/" class="text-sm font-medium text-gray-700 hover:text-green-600 transition">Beranda</a>
-                        <a href="{{ route('check.order') }}" class="text-sm font-medium text-gray-700 hover:text-green-600 transition">Lacak Pesanan</a>
-                        <a href="/about" class="text-sm font-medium text-gray-700 hover:text-green-600 transition">About</a>
-                        <livewire:cart-badge />
-                    </div>
-                </div>
+                    <span class="font-extrabold text-xl text-green-900 tracking-tight">Agrimart</span>
+                </a>
             </div>
-        </nav>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="/" class="text-sm font-medium text-gray-700 hover:text-green-600 transition">Beranda</a>
+                <a href="{{ route('check.order') }}" class="text-sm font-medium text-gray-700 hover:text-green-600 transition">Lacak Pesanan</a>
+                <a href="/about" class="text-sm font-medium text-gray-700 hover:text-green-600 transition">About</a>
+                <livewire:cart-badge />
+            </div>
+
+            <!-- Mobile: Cart + Hamburger -->
+            <div class="flex items-center gap-3 md:hidden">
+                <livewire:cart-badge />
+                <button
+                    id="hamburger-btn"
+                    onclick="toggleMobileMenu()"
+                    class="p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition"
+                    aria-label="Toggle menu"
+                >
+                    <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <svg id="icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Dropdown Menu -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-gray-100 bg-white shadow-md">
+        <div class="px-4 py-3 space-y-1">
+            <a href="/" class="block px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 transition">
+                🏠 Beranda
+            </a>
+            <a href="{{ route('check.order') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 transition">
+                📦 Lacak Pesanan
+            </a>
+            <a href="/about" class="block px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 transition">
+                ℹ️ About
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const iconOpen = document.getElementById('icon-open');
+            const iconClose = document.getElementById('icon-close');
+
+            menu.classList.toggle('hidden');
+            iconOpen.classList.toggle('hidden');
+            iconClose.classList.toggle('hidden');
+        }
+    </script>
+</nav>
 
         <main class="grow">
             @if(isset($slot))
@@ -141,5 +187,6 @@
             </svg>
             <span x-text="message" class="font-bold text-sm"></span>
         </div>
+        <script src="https://cdn.tailwindcss.com"></script>
     </body>
 </html>
