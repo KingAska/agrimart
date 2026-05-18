@@ -7,7 +7,6 @@ new class extends Component
 {
     public Order $order;
     public $subtotal_items = 0;
-    public $shipping_cost = 0;
 
     public function mount($invoice_number)
     {
@@ -15,14 +14,10 @@ new class extends Component
             ->with('items.product')
             ->firstOrFail();
 
-        // 1. Hitung total harga murni dari barang belanjaan saja
+        // Hitung total harga murni dari barang belanjaan saja
         foreach ($this->order->items as $item) {
             $this->subtotal_items += $item->price * $item->quantity;
         }
-
-        // 2. Ongkir adalah selisih mutlak dari Total Tagihan di database dikurangi Subtotal barang
-        // Ini dijamin 100% konsisten mengikuti nominal asli dari halaman checkout!
-        $this->shipping_cost = $this->order->total_price - $this->subtotal_items;
     }
 };
 ?>
@@ -58,7 +53,7 @@ new class extends Component
                 
                 @if($order->payment_method === 'manual')
                     <div class="space-y-4 text-gray-700">
-                        <p>Silakan lakukan transfer tepat sebesar <strong>Rp {{ number_format($subtotal_items + $shipping_cost, 0, ',', '.') }}</strong> ke salah satu rekening berikut:</p>
+                        <p>Silakan lakukan transfer tepat sebesar <strong>Rp {{ number_format($subtotal_items, 0, ',', '.') }}</strong> ke salah satu rekening berikut:</p>
                         
                         <div class="bg-white p-4 rounded-lg border flex items-center gap-4 shadow-sm">
                             <div class="bg-orange-100 text-orange-500 font-black px-4 py-2 rounded">SEABANK</div>
@@ -129,24 +124,12 @@ new class extends Component
                         <span>Subtotal Produk</span>
                         <span class="font-semibold text-gray-900">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</span>
                     </div>
-                    
-                    @if($shipping_cost > 0)
-                        <div class="flex justify-between">
-                            <span>Ongkos Kirim</span>
-                            <span class="font-semibold text-orange-500">+ Rp {{ number_format($shipping_cost, 0, ',', '.') }}</span>
-                        </div>
-                    @else
-                        <div class="flex justify-between text-green-600 font-medium">
-                            <span>Metode Pengambilan</span>
-                            <span>Ambil di Toko (Bebas Ongkir)</span>
-                        </div>
-                    @endif
                 </div>
             </div>
 
             <div class="flex justify-between items-center text-2xl font-black text-gray-900 bg-green-50 p-4 rounded-lg border border-green-200">
                 <span>Total Tagihan</span>
-                <span class="text-green-600">Rp {{ number_format($subtotal_items + $shipping_cost, 0, ',', '.') }}</span>
+                <span class="text-green-600">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</span>
             </div>
 
         </div>

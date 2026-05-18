@@ -41,26 +41,13 @@
             @endforeach
         </tbody>
         <tfoot>
-            @php
-                $shipping_cost = $order->total_price - $subtotal_items;
-            @endphp
             <tr>
                 <td colspan="2" style="padding: 8px 10px; text-align: right; color: #555; font-size: 14px;">Subtotal Produk:</td>
                 <td style="padding: 8px 10px; text-align: right; color: #333; font-size: 14px; font-weight: bold;">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</td>
             </tr>
-            <tr>
-                <td colspan="2" style="padding: 8px 10px; text-align: right; color: #555; font-size: 14px;">Ongkos Kirim:</td>
-                <td style="padding: 8px 10px; text-align: right; color: #ea580c; font-size: 14px; font-weight: bold;">
-                    @if($shipping_cost > 0)
-                        + Rp {{ number_format($shipping_cost, 0, ',', '.') }}
-                    @else
-                        Rp 0 (Ambil di Toko)
-                    @endif
-                </td>
-            </tr>
             <tr style="border-top: 2px solid #ddd;">
                 <td colspan="2" style="padding: 15px 10px; text-align: right; font-weight: bold; font-size: 18px;">Total Tagihan:</td>
-                <td style="padding: 15px 10px; text-align: right; font-weight: bold; font-size: 18px; color: #16a34a;">Rp {{ number_format($order->total_price, 0, ',', '.') }}</td>
+                <td style="padding: 15px 10px; text-align: right; font-weight: bold; font-size: 18px; color: #16a34a;">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>

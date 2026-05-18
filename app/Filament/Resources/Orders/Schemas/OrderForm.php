@@ -15,7 +15,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Dotswan\MapPicker\Fields\Map; 
 use Illuminate\Support\Facades\Http;
 
 class OrderForm
@@ -66,97 +65,15 @@ class OrderForm
                             ->live()
                             ->columnSpanFull(),
 
+                        // Alamat hanya ditampilkan jika tipe = delivery
                         Group::make()->schema([
                             Textarea::make('customer_address')
                                 ->label('Alamat Pengiriman')
                                 ->required()
                                 ->columnSpanFull(),
-                            
-                            TextInput::make('search_location')
-                                ->label('Cari Lokasi / Alamat Cepat')
-                                ->placeholder('Ketik nama kota, kecamatan, atau jalan... lalu klik ikon 🔍')
-                                ->columnSpanFull()
-                                ->suffixAction(
-                                    Action::make('search')
-                                        ->icon('heroicon-m-magnifying-glass')
-                                        ->color('success')
-                                        ->action(function (Set $set, $state) {
-                                            if (blank($state)) return;
-                                            try {
-                                                $response = Http::withHeaders([
-                                                    'User-Agent' => 'AgriMart-AdminPanel/1.0'
-                                                ])->get('https://nominatim.openstreetmap.org/search', [
-                                                    'q' => $state,
-                                                    'format' => 'json',
-                                                    'limit' => 1,
-                                                ]);
-
-                                                if ($response->successful() && count($response->json()) > 0) {
-                                                    $data = $response->json()[0];
-                                                    $lat = (float) $data['lat'];
-                                                    $lng = (float) $data['lon'];
-
-                                                    $set('location', ['lat' => $lat, 'lng' => $lng]);
-                                                    $set('latitude', $lat);
-                                                    $set('longitude', $lng);
-
-                                                    Notification::make()
-                                                        ->title('Lokasi Ditemukan!')
-                                                        ->body('Peta telah digeser ke: ' . $data['display_name'])
-                                                        ->success()
-                                                        ->send();
-                                                } else {
-                                                    Notification::make()
-                                                        ->title('Lokasi tidak ditemukan')
-                                                        ->danger()
-                                                        ->send();
-                                                }
-                                            } catch (\Exception $e) {
-                                                Notification::make()
-                                                    ->title('Gagal terhubung ke server peta')
-                                                    ->danger()
-                                                    ->send();
-                                            }
-                                        })
-                                ),
-
-                            Map::make('location')
-                                ->label('Tandai Lokasi Peta')
-                                ->columnSpanFull()
-                                ->afterStateHydrated(function (Set $set, $record) {
-                                    if ($record && $record->latitude && $record->longitude) {
-                                        $set('location', [
-                                            'lat' => (float) $record->latitude,
-                                            'lng' => (float) $record->longitude,
-                                        ]);
-                                    }
-                                })
-                                ->live()
-                                ->afterStateUpdated(function (Set $set, ?array $state): void {
-                                    if ($state) {
-                                        $set('latitude', $state['lat']);
-                                        $set('longitude', $state['lng']);
-                                    }
-                                }),
-
-                            Grid::make(2)->schema([
-                                TextInput::make('latitude')
-                                    ->label('Garis Lintang (Latitude)')
-                                    ->readOnly()
-                                    ->numeric(),
-                                TextInput::make('longitude')
-                                    ->label('Garis Bujur (Longitude)')
-                                    ->readOnly()
-                                    ->numeric(),
-                            ])->columnSpanFull(),
                         ])
                         ->columnSpanFull()
                         ->visible(fn (Get $get) => $get('delivery_type') === 'delivery'),
-
-                        Textarea::make('note')
-                            ->label('Catatan Pesanan')
-                            ->placeholder('Contoh: Diambil jam 6 sore')
-                            ->columnSpanFull(),
                     ])->columns(2),
 
                     Section::make('Produk yang Dipesan')->schema([

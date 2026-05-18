@@ -4,7 +4,6 @@ use Livewire\Component;
 use Livewire\Attributes\Validate;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,12 +18,7 @@ new class extends Component
 {
     public $cart = [];
     public $total = 0;
-
-    public $ongkir = 0;
-    public $grand_total = 0;
-
-    private $store_latitude = -6.118926343238201;
-    private $store_longitude = 106.23919533526966;
+    public $grand_total = 0; // total belanja (tanpa ongkir)
 
     public $provinces = [];
     public $cities = [];
@@ -38,21 +32,14 @@ new class extends Component
     #[Validate('required|numeric', message: 'Nomor HP harus berupa angka')]
     public $phone = '';
 
-    // Tambahan untuk Tipe Pesanan
     #[Validate('required|in:pickup,delivery')]
     public $delivery_type = 'pickup';
 
-    // Form Wilayah (Validasi dipindah ke dalam processCheckout agar kondisional)
     public $province_id = '';
     public $province_name = '';
-
     public $city_id = '';
     public $city_name = '';
-
     public $address = '';
-#-6.118926343238201, 106.23919533526966
-    public $latitude = '-6.118926343238201';
-    public $longitude = '106.23919533526966';
 
     #[Validate('required|in:manual,midtrans')]
     public $payment_method = 'manual';
@@ -68,7 +55,9 @@ new class extends Component
         foreach ($this->cart as $item) {
             $this->total += $item['price'] * $item['quantity'];
         }
+        $this->grand_total = $this->total;
 
+        // Ambil data provinsi untuk keperluan form alamat
         try {
             $response = Http::get('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json');
             if ($response->successful()) {
@@ -77,55 +66,6 @@ new class extends Component
         } catch (\Exception $e) {}
     }
     
-    public function hitungTotalBelanja()
-    {
-        $this->total = 0;
-        foreach ($this->cart as $item) {
-            $this->total += $item['price'] * $item['quantity'];
-        }
-    }
-    // Melakukan pemantauan perubahan tipe pengiriman atau pergeseran koordinat peta
-    public function updated($propertyName)
-    {
-        if (in_array($propertyName, ['delivery_type', 'latitude', 'longitude'])) {
-            $this->hitungOngkir();
-        }
-    }
-
-    // Rumus Haversine untuk menghitung ongkir dinamis per KM
-    public function hitungOngkir()
-    {
-        if ($this->delivery_type === 'pickup') {
-            $this->ongkir = 0;
-            $this->grand_total = $this->total;
-            return;
-        }
-
-        // Hitung jarak udara menggunakan rumus Haversine jika koordinat tersedia
-        if ($this->latitude && $this->longitude) {
-            $earthRadius = 6371; // Radius bumi dalam kilometer
-
-            $latDelta = deg2rad((float)$this->latitude - $this->store_latitude);
-            $lonDelta = deg2rad((float)$this->longitude - $this->store_longitude);
-
-            $a = sin($latDelta / 2) * sin($latDelta / 2) +
-                 cos(deg2rad($this->store_latitude)) * cos(deg2rad((float)$this->latitude)) *
-                 sin($lonDelta / 2) * sin($lonDelta / 2);
-                 
-            $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-            $distance = $earthRadius * $c; // Jarak dalam KM (Desimal)
-
-            // ---- PERBAIKAN LOGIKA DI SINI ----
-        // Jika jaraknya sangat dekat (di bawah atau sama dengan 0.5 KM), beri tarif flat Rp 5.000
-        if ($distance <= 0.5) {
-            $this->ongkir = 0;
-        } else {
-            // Jika di atas 0.5 KM, bulatkan ke atas seperti biasa lalu kalikan 10.000
-            $this->ongkir = ceil($distance) * 5000; // Skenario B (5.000 per KM)
-}
-$this->grand_total = $this->total + $this->ongkir;
-    }
-    }
     public function updatedProvinceId($value)
     {
         $this->cities = [];
@@ -155,10 +95,8 @@ $this->grand_total = $this->total + $this->ongkir;
 
     public function processCheckout()
     {
-        // Jalankan validasi dasar (nama, email, hp, payment_method, delivery_type)
         $this->validate();
 
-        // Validasi kondisional untuk alamat jika tipe pesanan adalah delivery
         if ($this->delivery_type === 'delivery') {
             $this->validate([
                 'province_id' => 'required',
@@ -172,8 +110,8 @@ $this->grand_total = $this->total + $this->ongkir;
             ]);
 
             $fullAddress = $this->address . ', ' . $this->city_name . ', Provinsi ' . $this->province_name;
-            $orderLatitude = $this->latitude;
-            $orderLongitude = $this->longitude;
+            $orderLatitude = null;   // Tidak pakai peta
+            $orderLongitude = null;
         } else {
             $fullAddress = 'Ambil di Toko (Pickup)';
             $orderLatitude = null;
@@ -196,7 +134,7 @@ $this->grand_total = $this->total + $this->ongkir;
                 'longitude' => $orderLongitude,
             ];
 
-            // Opsional: Jika tabel orders memiliki kolom delivery_type, uncomment baris di bawah ini:
+            // Jika tabel orders punya kolom delivery_type, aktifkan baris di bawah
             // $orderData['delivery_type'] = $this->delivery_type;
 
             $order = Order::create($orderData);
@@ -212,7 +150,7 @@ $this->grand_total = $this->total + $this->ongkir;
 
             if ($this->payment_method === 'midtrans') {
                 Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-                Config::$isProduction = env('MIDTRANS_IS_PRODUCTION');
+                Config::$isProduction = env('MIDTRANS_IS_PRODUCTION') ?? false;
                 Config::$isSanitized = true;
                 Config::$is3ds = true;
 
@@ -253,14 +191,10 @@ $this->grand_total = $this->total + $this->ongkir;
 };
 ?>
 
-@push('styles')
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-@endpush
-
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="mb-8">
         <h1 class="text-3xl font-extrabold text-gray-900">Checkout Pesanan</h1>
-        <p class="text-gray-500 mt-2">Lengkapi data pengiriman, tandai lokasi peta, dan pilih metode pembayaran.</p>
+        <p class="text-gray-500 mt-2">Lengkapi data pengiriman dan pilih metode pembayaran.</p>
     </div>
 
     @if (session()->has('error'))
@@ -339,61 +273,6 @@ $this->grand_total = $this->total + $this->ongkir;
                             <textarea wire:model="address" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border" placeholder="Nama Jalan, Gedung, RT/RW, Kelurahan, Kecamatan, Kode Pos..."></textarea>
                             @error('address') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tandai Lokasi di Peta (Wajib)</label>
-                            <p class="text-xs text-gray-500 mb-3">Geser pin merah atau klik peta untuk menentukan titik akurat pengiriman rumah Anda.</p>
-                            
-                            <div wire:ignore 
-                                 x-data="{
-                                     map: null,
-                                     marker: null,
-                                     initMap() {
-                                         setTimeout(() => {
-                                             this.map = L.map($refs.mapContainer).setView([$wire.latitude, $wire.longitude], 5);
-                                             
-                                             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                                 maxZoom: 19,
-                                                 attribution: '© OpenStreetMap'
-                                             }).addTo(this.map);
-
-                                             this.marker = L.marker([$wire.latitude, $wire.longitude], {draggable: true}).addTo(this.map);
-
-                                             this.marker.on('dragend', (e) => {
-                                                 let pos = this.marker.getLatLng();
-                                                 $wire.set('latitude', pos.lat);
-                                                 $wire.set('longitude', pos.lng);
-                                             });
-
-                                             this.map.on('click', (e) => {
-                                                 this.marker.setLatLng(e.latlng);
-                                                 $wire.set('latitude', e.latlng.lat);
-                                                 $wire.set('longitude', e.latlng.lng);
-                                             });
-
-                                             this.map.on('locationfound', (e) => {
-                                                 this.marker.setLatLng(e.latlng);
-                                                 this.map.setView(e.latlng, 16);
-                                                 $wire.set('latitude', e.latlng.lat);
-                                                 $wire.set('longitude', e.latlng.lng);
-                                             });
-                                         }, 100);
-                                     },
-                                     locateMe() {
-                                         this.map.locate({setView: true, maxZoom: 16});
-                                     }
-                                 }" 
-                                 x-init="initMap()" 
-                                 class="border border-gray-300 rounded-lg overflow-hidden relative shadow-sm z-0">
-                                 
-                                <div x-ref="mapContainer" style="height: 350px; width: 100%; z-index: 1;"></div>
-                                
-                                <button type="button" @click="locateMe()" class="absolute bottom-4 left-4 z-400 bg-white text-gray-800 font-bold px-4 py-2 rounded shadow-md border hover:bg-gray-50 flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                    Deteksi Lokasi Saya
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 @endif
 
@@ -438,17 +317,7 @@ $this->grand_total = $this->total + $this->ongkir;
                         </li>
                     @endforeach
                 </ul>
-                @if($delivery_type === 'delivery')
-                    <div class="flex justify-between text-sm font-medium text-gray-700 border-t border-gray-300 pt-4 mb-2">
-                        <span>Harga Belanja</span>
-                        <span>Rp {{ number_format($total, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="flex justify-between text-sm font-medium text-gray-700 pb-4 mb-2 border-b border-dashed border-gray-300">
-                        <span>Ongkos Kirim </span>
-                        <span class="text-orange-600 font-bold">+ Rp {{ number_format($ongkir, 0, ',', '.') }}</span>
-                    </div>
-                @endif
-                <div class="flex justify-between text-xl font-black text-gray-900 {{ $delivery_type !== 'delivery' ? 'border-t border-gray-300 pt-4' : '' }}">
+                <div class="flex justify-between text-xl font-black text-gray-900 border-t border-gray-300 pt-4">
                     <span>Total Tagihan</span>
                     <span class="text-green-600">Rp {{ number_format($grand_total, 0, ',', '.') }}</span>
                 </div>
@@ -456,7 +325,3 @@ $this->grand_total = $this->total + $this->ongkir;
         </div>
     </div>
 </div>
-
-@push('scripts')
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-@endpush
