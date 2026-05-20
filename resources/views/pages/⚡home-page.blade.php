@@ -72,6 +72,7 @@ new class extends Component
                 ->when($this->search, function ($query) {
                     $query->where('name', 'like', '%' . $this->search . '%');
                 })
+                ->orderByRaw('stock > 0 DESC')
                 ->latest()
                 ->paginate(12)
         ];
