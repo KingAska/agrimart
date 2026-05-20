@@ -151,7 +151,7 @@
                     <h3 class="text-white font-bold text-lg mb-4 mt-5 ">LOKASI AGRIMART</h3>
                     <div class="w-full h-45 rounded-lg overflow-hidden shadow-md border border-gray-800 mt-2">
                         <iframe 
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d963.537389559387!2d106.23985548171554!3d-6.119318384160449!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e41f50020f76b27%3A0x350c51c1da80e91b!2sPengujian%20Mutu%20Beras!5e0!3m2!1sid!2sid!4v1779069073977!5m2!1sid!2sid" 
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.086952069873!2d106.23915319999999!3d-6.1189974!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e41f50025cb8c0d%3A0xabee5588b993b038!2sBALAI%20PENERAPAN%20MODERNISASI%20PERTANIAN%20(BRMP)%20BANTEN!5e0!3m2!1sid!2sid!4v1779285249139!5m2!1sid!2sid" 
                             class="w-full h-full border-0"
                             allowfullscreen="" 
                             loading="lazy" 

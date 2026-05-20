@@ -56,31 +56,37 @@ new class extends Component
 
     @if(count($cart) > 0)
         <div class="flex flex-col lg:flex-row gap-8">
-            <div class="w-full lg:w-2/3 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="w-full lg:w-2/3 bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
                 <ul class="divide-y divide-gray-200">
                     @foreach($cart as $id => $item)
-                        <li class="py-6 flex items-center justify-between">
-                            <div class="flex items-center gap-6">
-                                <img src="{{ $item['image'] ? asset('storage/'.$item['image']) : 'https://via.placeholder.com/150' }}" alt="{{ $item['name'] }}" class="w-24 h-24 object-cover rounded-lg border">
+                        <li class="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <!-- Bagian gambar & info produk -->
+                            <div class="flex items-center gap-4">
+                                <img src="{{ $item['image'] ? asset('storage/'.$item['image']) : 'https://via.placeholder.com/150' }}" 
+                                     alt="{{ $item['name'] }}" 
+                                     class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border">
                                 <div>
-                                    <h3 class="text-lg font-bold text-gray-900">{{ $item['name'] }}</h3>
+                                    <h3 class="text-base sm:text-lg font-bold text-gray-900">{{ $item['name'] }}</h3>
                                     <p class="text-green-600 font-semibold mt-1">Rp {{ number_format($item['price'], 0, ',', '.') }}</p>
                                 </div>
                             </div>
                             
-                            <div class="flex items-center gap-6">
+                            <!-- Bagian quantity, subtotal & hapus -->
+                            <div class="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
                                 <div class="flex items-center border rounded-lg">
-                                    <button wire:click="decreaseQuantity({{ $id }})" class="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-lg">-</button>
-                                    <span class="px-4 py-1 font-semibold text-gray-900 border-x">{{ $item['quantity'] }}</span>
-                                    <button wire:click="increaseQuantity({{ $id }})" class="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-lg">+</button>
+                                    <button wire:click="decreaseQuantity({{ $id }})" class="px-2 sm:px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-lg">-</button>
+                                    <span class="px-3 sm:px-4 py-1 font-semibold text-gray-900 border-x">{{ $item['quantity'] }}</span>
+                                    <button wire:click="increaseQuantity({{ $id }})" class="px-2 sm:px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-lg">+</button>
                                 </div>
                                 
-                                <p class="font-bold text-gray-900 w-32 text-right">
+                                <p class="font-bold text-gray-900 w-24 text-right">
                                     Rp {{ number_format($item['price'] * $item['quantity'], 0, ',', '.') }}
                                 </p>
 
-                                <button wire:click="removeItem({{ $id }})" class="text-red-500 hover:text-red-700 p-2">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                <button wire:click="removeItem({{ $id }})" class="text-red-500 hover:text-red-700 p-1">
+                                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
                                 </button>
                             </div>
                         </li>
@@ -112,7 +118,9 @@ new class extends Component
         </div>
     @else
         <div class="text-center py-20 bg-white rounded-xl shadow-sm border border-gray-100">
-            <svg class="mx-auto h-24 w-24 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <svg class="mx-auto h-24 w-24 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
             <h2 class="text-2xl font-bold text-gray-900">Keranjang masih kosong</h2>
             <p class="text-gray-500 mt-2 mb-6">Yuk, cari bibit dan pupuk terbaik untuk kebunmu!</p>
             <a href="/" class="bg-green-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-green-700 transition">

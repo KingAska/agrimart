@@ -12,7 +12,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
         <div>
             <h1 class="text-4xl font-black text-gray-900 mb-6">Hubungi Kami</h1>
-            <p class="text-gray-600 mb-8">Punya pertanyaan seputar produk atau pesanan? Tim kami siap membantu Anda 24/7.</p>
+            <p class="text-gray-600 mb-8">Konsultasi disini! kami siap membantu Anda.</p>
             
             <div class="space-y-6">
                 <a href="https://wa.me/6281234567890" target="_blank" class="flex items-center gap-4 group">
@@ -27,7 +27,7 @@
                     </div>
                 </a>
 
-                <a href="mailto:support@agrimart.com" class="flex items-center gap-4 group">
+                <a href="mailto:{{env('CONTACT_SUPPORT_EMAIL') }}" class="flex items-center gap-4 group">
                     <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -35,7 +35,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500">Email Support</p>
-                        <p class="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">{{ env('CONTACT_SUPPORT_EMAIL') }}</p>
+                        <p class="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">{{env('CONTACT_SUPPORT_EMAIL') }}</p>
                     </div>
                 </a>
             </div>

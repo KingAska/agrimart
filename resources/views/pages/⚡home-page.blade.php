@@ -86,8 +86,7 @@ new class extends Component
             Selamat Datang di Agrimart BBRMP Banten
         </h1>
         <p class="mt-4 text-xl max-w-2xl mx-auto opacity-90">
-            Balai Besar Penerapan Modernisasi Pertanian Banten menyediakan layanan AgriMart untuk memastikan produk dan teknologi pertanian memenuhi standar mutu, keamanan, dan keberlanjutan.
-        
+            Pusat layanan dan produksi benih unggul yang siap mendukung peningkatan produksi dan produktivitas pertanian di Provinsi Banten.
         <div class="mt-8 max-w-xl mx-auto relative text-gray-900">
             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari benih, pupuk..." 
                 class="w-full text-white py-3 px-5 rounded-full shadow-lg focus:ring-4 focus:ring-green-300 outline-none transition-all">
