@@ -19,7 +19,7 @@ class ContactMessage extends Mailable
 
     public function build()
     {
-        return $this->subject('Pesan Baru dari Form Kontak Agri Mart')
+        return $this->subject('Pesan Baru dari Form Kontak Agrimart')
                     ->replyTo($this->data['email'], $this->data['name'])
                     ->view('emails.contact');
     }

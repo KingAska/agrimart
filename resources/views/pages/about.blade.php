@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tentang Kami - Agri Mart')
+@section('title', 'Tentang Kami - Agrimart')
 
 @section('content')
     <div class="bg-linear-to-b from-green-50 to-white py-20 border-b border-green-100">
@@ -34,7 +34,7 @@
                     </div>
                     <div>
                         <p class="text-4xl font-black text-green-900 mb-1">24/7</p>
-                        <p class="text-sm text-gray-500 font-medium">Dukungan Pelanggan</p>
+                        <p class="text-sm text-gray-500 font-medium">Realtime Update Stock</p>
                     </div>
                 </div>
             </div>

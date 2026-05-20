@@ -5,7 +5,7 @@
         <h2>Halo Admin, ada pesanan masuk yang sudah dibayar!</h2>
     @else
         <h2>Halo {{ $order->customer_name }}, Pembayaran Berhasil! 🌾</h2>
-        <p>Terima kasih telah berbelanja di Agri Mart. Kami telah menerima pembayaran Anda dan pesanan Anda sedang kami proses.</p>
+        <p>Terima kasih telah berbelanja di Agrimart. Kami telah menerima pembayaran Anda dan pesanan Anda sedang kami proses.</p>
     @endif
 
     <div style="background-color: #f9f9f9; padding: 15px; border: 1px solid #ddd; margin-top: 20px;">

@@ -86,7 +86,7 @@ new class extends Component
             Selamat Datang di Agrimart BBRMP Banten
         </h1>
         <p class="mt-4 text-xl max-w-2xl mx-auto opacity-90">
-            Pusat layanan dan produksi benih unggul yang siap mendukung peningkatan produksi dan produktivitas pertanian di Provinsi Banten.
+            Pemesanan hari Senin - Jumat Pukul 08.00 s/d 15.00 WIB.
         <div class="mt-8 max-w-xl mx-auto relative text-gray-900">
             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari benih, pupuk..." 
                 class="w-full text-white py-3 px-5 rounded-full shadow-lg focus:ring-4 focus:ring-green-300 outline-none transition-all">

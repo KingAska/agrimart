@@ -5,7 +5,7 @@
 
 @extends('layouts.app')
 
-@section('title', 'Hubungi Kami - Agri Mart')
+@section('title', 'Hubungi Kami - Agrimart')
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 py-16">

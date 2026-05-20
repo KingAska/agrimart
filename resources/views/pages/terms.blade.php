@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Syarat & Ketentuan - Agri Mart')
+@section('title', 'Syarat & Ketentuan - Agrimart')
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 py-16">

@@ -15,7 +15,7 @@ class ProductSeeder extends Seeder
     {
         $faker = Faker::create('id_ID');
 
-        $this->command->info('Mempersiapkan data produk Agri Mart yang realistis...');
+        $this->command->info('Mempersiapkan data produk Agrimart yang realistis...');
 
         // 50 Data Asli Pertanian Indonesia
         $realProducts = [
