@@ -24,12 +24,6 @@ class UsersTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('email_verified_at')
-                    ->label('Email Terverifikasi')
-                    ->dateTime('d M Y, H:i')
-                    ->sortable()
-                    ->placeholder('Belum terverifikasi'),
-
                 TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d M Y, H:i')
