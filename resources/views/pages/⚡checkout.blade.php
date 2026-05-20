@@ -95,10 +95,7 @@ new class extends Component
 
     public function processCheckout()
     {
-        $this->validate();
-
-        if ($this->delivery_type === 'delivery') {
-            $this->validate([
+        $this->validate([
                 'province_id' => 'required',
                 'city_id' => 'required',
                 'address' => 'required|min:10',
@@ -112,11 +109,6 @@ new class extends Component
             $fullAddress = $this->address . ', ' . $this->city_name . ', Provinsi ' . $this->province_name;
             $orderLatitude = null;   // Tidak pakai peta
             $orderLongitude = null;
-        } else {
-            $fullAddress = 'Ambil di Toko (Pickup)';
-            $orderLatitude = null;
-            $orderLongitude = null;
-        }
 
         DB::beginTransaction();
         try {
@@ -241,8 +233,6 @@ new class extends Component
                     </div>
                     @error('delivery_type') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
-
-                @if($delivery_type === 'delivery')
                     <div class="space-y-6 pt-4 border-t border-gray-100">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -274,7 +264,6 @@ new class extends Component
                             @error('address') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                @endif
 
                 <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-4 mt-10">Metode Pembayaran</h2>
                 

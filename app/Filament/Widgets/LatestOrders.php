@@ -25,7 +25,7 @@ class LatestOrders extends TableWidget
     {
         return [
             ExportAction::make()
-                ->label('Export')
+                ->label('Export')   
                 ->exports([
                     ExcelExport::make()
                         ->modifyQueryUsing(function ($query) {
