@@ -18,10 +18,11 @@ new class extends Component
 {
     public $cart = [];
     public $total = 0;
-    public $grand_total = 0; // total belanja (tanpa ongkir)
+    public $grand_total = 0;
 
     public $provinces = [];
     public $cities = [];
+    public $districts = [];
 
     #[Validate('required|min:3', message: 'Nama lengkap wajib diisi (min. 3 huruf)')]
     public $name = '';
@@ -39,15 +40,28 @@ new class extends Component
     public $province_name = '';
     public $city_id = '';
     public $city_name = '';
+    public $district_id = '';
+    public $district_name = '';
     public $address = '';
+
+    public $courier = '';
+    public $shipping_services = [];
+    public $selected_service = '';
+    public $shipping_cost = 0;
+    public $selected_service_label = '';
 
     #[Validate('required|in:manual,midtrans')]
     public $payment_method = 'manual';
 
+    protected function rajaongkirHeaders(): array
+    {
+        return ['key' => env('RAJAONGKIR_API_KEY')];
+    }
+
     public function mount()
     {
         $this->cart = Session::get('cart', []);
-        
+
         if (empty($this->cart)) {
             return redirect()->route('home');
         }
@@ -57,29 +71,35 @@ new class extends Component
         }
         $this->grand_total = $this->total;
 
-        // Ambil data provinsi untuk keperluan form alamat
         try {
-            $response = Http::get('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json');
+            $response = Http::withHeaders($this->rajaongkirHeaders())
+                ->get('https://rajaongkir.komerce.id/api/v1/destination/province');
             if ($response->successful()) {
-                $this->provinces = $response->json();
+                $this->provinces = $response->json()['data'] ?? [];
             }
         } catch (\Exception $e) {}
     }
-    
+
     public function updatedProvinceId($value)
     {
         $this->cities = [];
         $this->city_id = '';
         $this->city_name = '';
+        $this->districts = [];
+        $this->district_id = '';
+        $this->shipping_services = [];
+        $this->shipping_cost = 0;
+        $this->grand_total = $this->total;
 
         if ($value) {
-            $selectedProv = collect($this->provinces)->firstWhere('id', $value);
-            $this->province_name = $selectedProv['name'] ?? '';
+            $selected = collect($this->provinces)->firstWhere('id', $value);
+            $this->province_name = $selected['name'] ?? '';
 
             try {
-                $response = Http::get("https://www.emsifa.com/api-wilayah-indonesia/api/regencies/{$value}.json");
+                $response = Http::withHeaders($this->rajaongkirHeaders())
+                    ->get("https://rajaongkir.komerce.id/api/v1/destination/city/{$value}");
                 if ($response->successful()) {
-                    $this->cities = $response->json();
+                    $this->cities = $response->json()['data'] ?? [];
                 }
             } catch (\Exception $e) {}
         }
@@ -87,78 +107,155 @@ new class extends Component
 
     public function updatedCityId($value)
     {
+        $this->districts = [];
+        $this->district_id = '';
+        $this->shipping_services = [];
+        $this->shipping_cost = 0;
+        $this->grand_total = $this->total;
+
         if ($value) {
-            $selectedCity = collect($this->cities)->firstWhere('id', $value);
-            $this->city_name = $selectedCity['name'] ?? '';
+            $selected = collect($this->cities)->firstWhere('id', $value);
+            $this->city_name = $selected['name'] ?? '';
+
+            try {
+                $response = Http::withHeaders($this->rajaongkirHeaders())
+                    ->get("https://rajaongkir.komerce.id/api/v1/destination/district/{$value}");
+                if ($response->successful()) {
+                    $this->districts = $response->json()['data'] ?? [];
+                }
+            } catch (\Exception $e) {}
         }
+    }
+
+    public function updatedDistrictId($value)
+    {
+        $this->shipping_services = [];
+        $this->shipping_cost = 0;
+        $this->grand_total = $this->total;
+
+        if ($value) {
+            $selected = collect($this->districts)->firstWhere('id', $value);
+            $this->district_name = $selected['name'] ?? '';
+        }
+    }
+
+  public function checkOngkir()
+{
+    if (!$this->district_id || !$this->courier) {
+        session()->flash('ongkir_error', 'Pilih kecamatan dan kurir terlebih dahulu.');
+        return;
+    }
+
+    try {
+        $response = Http::withHeaders($this->rajaongkirHeaders())
+            ->asForm()
+            ->post('https://rajaongkir.komerce.id/api/v1/calculate/district/domestic-cost', [
+                'origin'      => (int) env('RAJAONGKIR_ORIGIN'),
+                'destination' => (int) $this->district_id,
+                'weight'      => 1000,
+                'courier'     => $this->courier,
+                'price'       => 'lowest',
+            ]);
+
+        if ($response->successful()) {
+    $this->shipping_services = $response->json()['data'] ?? [];
+    $this->selected_service = '';
+    $this->shipping_cost = 0;
+    $this->grand_total = $this->total;
+        } else {
+    session()->flash('ongkir_error', 'Response: ' . json_encode($response->json()));
+}
+    } catch (\Exception $e) {
+        session()->flash('ongkir_error', 'Error: ' . $e->getMessage());
+    }
+}
+
+    public function selectService($service, $cost, $label)
+    {
+        $this->selected_service = $service;
+        $this->selected_service_label = $label;
+        $this->shipping_cost = $cost;
+        $this->grand_total = $this->total + $cost;
     }
 
     public function processCheckout()
     {
-        $this->validate([
-                'province_id' => 'required',
-                'city_id' => 'required',
-                'address' => 'required|min:10',
-            ], [
-                'province_id.required' => 'Provinsi wajib dipilih',
-                'city_id.required' => 'Kota/Kabupaten wajib dipilih',
-                'address.required' => 'Alamat jalan harus lengkap dan jelas',
-                'address.min' => 'Alamat jalan harus lengkap dan jelas (min. 10 karakter)',
-            ]);
+        $rules = [
+            'name'    => 'required|min:3',
+            'email'   => 'required|email',
+            'phone'   => 'required|numeric',
+            'address' => 'required|min:10',
+        ];
 
-            $fullAddress = $this->address . ', ' . $this->city_name . ', Provinsi ' . $this->province_name;
-            $orderLatitude = null;   // Tidak pakai peta
-            $orderLongitude = null;
+        $messages = [
+            'address.required' => 'Alamat wajib diisi',
+            'address.min'      => 'Alamat minimal 10 karakter',
+        ];
+
+        if ($this->delivery_type === 'delivery') {
+            $rules['province_id']      = 'required';
+            $rules['city_id']          = 'required';
+            $rules['district_id']      = 'required';
+            $rules['courier']          = 'required';
+            $rules['selected_service'] = 'required';
+
+            $messages['province_id.required']      = 'Provinsi wajib dipilih';
+            $messages['city_id.required']          = 'Kota wajib dipilih';
+            $messages['district_id.required']      = 'Kecamatan wajib dipilih';
+            $messages['courier.required']          = 'Kurir wajib dipilih';
+            $messages['selected_service.required'] = 'Layanan pengiriman wajib dipilih, klik Cek Ongkir dulu';
+        }
+
+        $this->validate($rules, $messages);
+
+        $fullAddress = $this->address . ', Kec. ' . $this->district_name . ', ' . $this->city_name . ', Provinsi ' . $this->province_name;
 
         DB::beginTransaction();
         try {
-            $orderData = [
-                'invoice_number' => 'INV-' . strtoupper(Str::random(8)),
-                'total_price' => $this->grand_total,
-                'customer_name' => $this->name,
-                'customer_email' => $this->email,
-                'customer_phone' => $this->phone,
+            $order = Order::create([
+                'invoice_number'   => 'INV-' . strtoupper(Str::random(8)),
+                'total_price'      => $this->grand_total,
+                'customer_name'    => $this->name,
+                'customer_email'   => $this->email,
+                'customer_phone'   => $this->phone,
                 'customer_address' => $fullAddress,
-                'payment_method' => $this->payment_method,
-                'payment_status' => 'unpaid',
-                'status' => 'pending',
-                'latitude' => $orderLatitude,
-                'longitude' => $orderLongitude,
-            ];
-
-            // Jika tabel orders punya kolom delivery_type, aktifkan baris di bawah
-            // $orderData['delivery_type'] = $this->delivery_type;
-
-            $order = Order::create($orderData);
+                'payment_method'   => $this->payment_method,
+                'payment_status'   => 'unpaid',
+                'status'           => 'pending',
+                'shipping_courier' => $this->delivery_type === 'delivery'
+                    ? strtoupper($this->courier) . ' - ' . $this->selected_service_label
+                    : 'Pickup',
+                'shipping_cost'    => $this->shipping_cost,
+                'latitude'         => null,
+                'longitude'        => null,
+            ]);
 
             foreach ($this->cart as $item) {
                 OrderItem::create([
-                    'order_id' => $order->id,
+                    'order_id'   => $order->id,
                     'product_id' => $item['id'],
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
+                    'quantity'   => $item['quantity'],
+                    'price'      => $item['price'],
                 ]);
             }
 
             if ($this->payment_method === 'midtrans') {
-                Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+                Config::$serverKey    = env('MIDTRANS_SERVER_KEY');
                 Config::$isProduction = env('MIDTRANS_IS_PRODUCTION') ?? false;
-                Config::$isSanitized = true;
-                Config::$is3ds = true;
+                Config::$isSanitized  = true;
+                Config::$is3ds        = true;
 
-                $params = [
+                $snapToken = Snap::getSnapToken([
                     'transaction_details' => [
-                        'order_id' => $order->invoice_number,
+                        'order_id'     => $order->invoice_number,
                         'gross_amount' => (int) $order->total_price,
                     ],
                     'customer_details' => [
                         'first_name' => $order->customer_name,
-                        'email' => $order->customer_email,
-                        'phone' => $order->customer_phone,
+                        'email'      => $order->customer_email,
+                        'phone'      => $order->customer_phone,
                     ],
-                ];
-
-                $snapToken = Snap::getSnapToken($params);
+                ]);
                 $order->update(['snap_token' => $snapToken]);
             }
 
@@ -167,7 +264,7 @@ new class extends Component
             try {
                 Mail::to($order->customer_email)->send(new OrderCreated($order));
             } catch (\Exception $e) {
-                Log::error('Gagal mengirim email pesanan: ' . $e->getMessage());
+                Log::error('Gagal mengirim email: ' . $e->getMessage());
             }
 
             Session::forget('cart');
@@ -183,7 +280,9 @@ new class extends Component
 };
 ?>
 
+<div> {{-- ROOT ELEMENT --}}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
     <div class="mb-8">
         <h1 class="text-3xl font-extrabold text-gray-900">Checkout Pesanan</h1>
         <p class="text-gray-500 mt-2">Lengkapi data pengiriman dan pilih metode pembayaran.</p>
@@ -196,9 +295,11 @@ new class extends Component
     @endif
 
     <div class="flex flex-col lg:flex-row gap-8">
+
+        {{-- KIRI: Form --}}
         <div class="w-full lg:w-2/3 bg-white rounded-xl shadow-sm border border-gray-100 p-8">
             <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-4">Informasi Pengiriman</h2>
-            
+
             <form wire:submit="processCheckout" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -223,63 +324,126 @@ new class extends Component
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipe Pesanan</label>
                     <div class="flex gap-6">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" wire:model.live="delivery_type" value="pickup" class="w-5 h-5 text-green-600 focus:ring-green-500 border-gray-300">
-                            <span class="text-sm font-medium text-gray-900">Ambil di Toko (Pickup)</span>
+                            <input type="radio" wire:model.live="delivery_type" value="pickup" class="w-5 h-5 text-green-600">
+                            <span class="text-sm font-medium">Ambil di Toko (Pickup)</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" wire:model.live="delivery_type" value="delivery" class="w-5 h-5 text-green-600 focus:ring-green-500 border-gray-300">
-                            <span class="text-sm font-medium text-gray-900">Antar Pengiriman</span>
+                            <input type="radio" wire:model.live="delivery_type" value="delivery" class="w-5 h-5 text-green-600">
+                            <span class="text-sm font-medium">Antar Pengiriman</span>
                         </label>
                     </div>
-                    @error('delivery_type') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
-                    <div class="space-y-6 pt-4 border-t border-gray-100">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
-                                <select wire:model.live="province_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white">
-                                    <option value="">-- Pilih Provinsi --</option>
-                                    @foreach($provinces as $prov)
-                                        <option value="{{ $prov['id'] }}">{{ $prov['name'] }}</option>
-                                    @endforeach
-                                </select>
-                                @error('province_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Kota / Kabupaten</label>
-                                <select wire:model.live="city_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white" {{ empty($cities) ? 'disabled' : '' }}>
-                                    <option value="">-- Pilih Kota/Kabupaten --</option>
-                                    @foreach($cities as $city)
-                                        <option value="{{ $city['id'] }}">{{ $city['name'] }}</option>
-                                    @endforeach
-                                </select>
-                                @error('city_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
 
+                <div class="space-y-6 pt-4 border-t border-gray-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Detail Alamat Jalan</label>
-                            <textarea wire:model="address" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border" placeholder="Nama Jalan, Gedung, RT/RW, Kelurahan, Kecamatan, Kode Pos..."></textarea>
-                            @error('address') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
+                            <select wire:model.live="province_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white">
+                                <option value="">-- Pilih Provinsi --</option>
+                                @foreach($provinces as $prov)
+                                    <option value="{{ $prov['id'] }}">{{ $prov['name'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('province_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kota / Kabupaten</label>
+                            <select wire:model.live="city_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white" {{ empty($cities) ? 'disabled' : '' }}>
+                                <option value="">-- Pilih Kota/Kabupaten --</option>
+                                @foreach($cities as $city)
+                                    <option value="{{ $city['id'] }}">{{ $city['name'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('city_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kecamatan</label>
+                        <select wire:model.live="district_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white" {{ empty($districts) ? 'disabled' : '' }}>
+                            <option value="">-- Pilih Kecamatan --</option>
+                            @foreach($districts as $district)
+                                <option value="{{ $district['id'] }}">{{ $district['name'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('district_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Detail Alamat Jalan</label>
+                        <textarea wire:model="address" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border" placeholder="Nama Jalan, RT/RW, Kelurahan, Kode Pos..."></textarea>
+                        @error('address') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                @if($delivery_type === 'delivery')
+                <div class="pt-4 border-t border-gray-100 space-y-4">
+                    <h3 class="text-lg font-bold text-gray-900">Cek Ongkos Kirim</h3>
+
+                    @if(session()->has('ongkir_error'))
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 rounded text-sm">
+                            {{ session('ongkir_error') }}
+                        </div>
+                    @endif
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kurir</label>
+                        <select wire:model="courier" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white">
+                            <option value="">-- Pilih Kurir --</option>
+                            <option value="jne">JNE</option>
+                            <option value="tiki">TIKI</option>
+                            <option value="pos">POS Indonesia</option>
+                            <option value="jnt">J&T Express</option>
+                            <option value="sicepat">SiCepat</option>
+                            <option value="anteraja">AnterAja</option>
+                        </select>
+                        @error('courier') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                    </div>
+
+                    <button type="button" wire:click="checkOngkir" wire:loading.attr="disabled"
+                        class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition disabled:opacity-50">
+                        <span wire:loading.remove wire:target="checkOngkir">Cek Ongkir</span>
+                        <span wire:loading wire:target="checkOngkir">Mengecek...</span>
+                    </button>
+
+                    @if(!empty($shipping_services))
+<div class="space-y-2">
+    <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Layanan Pengiriman</label>
+    @foreach($shipping_services as $service)
+        <label class="flex items-center justify-between p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition {{ $selected_service === $service['code'].'_'.$service['service'] ? 'border-green-500 bg-green-50' : 'border-gray-200' }}">
+            <div class="flex items-center gap-3">
+                <input type="radio"
+                    wire:click="selectService('{{ $service['code'].'_'.$service['service'] }}', {{ $service['cost'] }}, '{{ $service['service'] }} - {{ $service['description'] }}')"
+                    class="w-4 h-4 text-green-600"
+                    {{ $selected_service === $service['code'].'_'.$service['service'] ? 'checked' : '' }}>
+                <div>
+                    <span class="font-bold text-gray-900">{{ $service['name'] }} {{ $service['service'] }}</span>
+                    <span class="block text-xs text-gray-500">{{ $service['description'] }}{{ $service['etd'] ? ' • Estimasi '.$service['etd'].' hari' : '' }}</span>
+                </div>
+            </div>
+            <span class="font-bold text-green-700">Rp {{ number_format($service['cost'], 0, ',', '.') }}</span>
+        </label>
+    @endforeach
+    @error('selected_service') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+</div>
+@endif
+                </div>
+                @endif
+
                 <h2 class="text-xl font-bold text-gray-900 mb-6 border-b pb-4 mt-10">Metode Pembayaran</h2>
-                
                 <div class="space-y-4">
                     <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition {{ $payment_method === 'manual' ? 'border-green-500 bg-green-50' : 'border-gray-200' }}">
-                        <input wire:model.live="payment_method" type="radio" value="manual" class="w-5 h-5 text-green-600 focus:ring-green-500">
+                        <input wire:model.live="payment_method" type="radio" value="manual" class="w-5 h-5 text-green-600">
                         <div class="ml-4 grow">
                             <span class="block font-bold text-gray-900">Transfer Bank Manual</span>
                             <span class="block text-sm text-gray-500">Verifikasi dilakukan oleh admin (BCA, Mandiri, BRI).</span>
                         </div>
                     </label>
                     <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition {{ $payment_method === 'midtrans' ? 'border-green-500 bg-green-50' : 'border-gray-200' }}">
-                        <input wire:model.live="payment_method" type="radio" value="midtrans" class="w-5 h-5 text-green-600 focus:ring-green-500">
+                        <input wire:model.live="payment_method" type="radio" value="midtrans" class="w-5 h-5 text-green-600">
                         <div class="ml-4 grow">
                             <span class="block font-bold text-gray-900">Bayar Otomatis (Midtrans)</span>
-                            <span class="block text-sm text-gray-500">QRIS, Virtual Account, e-Wallet (OVO, GoPay, dll). Konfirmasi otomatis.</span>
+                            <span class="block text-sm text-gray-500">QRIS, Virtual Account, e-Wallet. Konfirmasi otomatis.</span>
                         </div>
                     </label>
                 </div>
@@ -292,6 +456,7 @@ new class extends Component
             </form>
         </div>
 
+        {{-- KANAN: Ringkasan --}}
         <div class="w-full lg:w-1/3">
             <div class="bg-gray-100 rounded-xl shadow-inner border border-gray-200 p-6 sticky top-24">
                 <h2 class="text-xl font-bold text-gray-900 mb-6">Barang Belanjaan</h2>
@@ -306,11 +471,28 @@ new class extends Component
                         </li>
                     @endforeach
                 </ul>
-                <div class="flex justify-between text-xl font-black text-gray-900 border-t border-gray-300 pt-4">
+                <div class="flex justify-between text-sm text-gray-700 border-t border-gray-300 pt-4">
+                    <span>Subtotal</span>
+                    <span>Rp {{ number_format($total, 0, ',', '.') }}</span>
+                </div>
+                @if($shipping_cost > 0)
+                <div class="flex justify-between text-sm text-gray-700 mt-2">
+                    <span>Ongkos Kirim</span>
+                    <span>Rp {{ number_format($shipping_cost, 0, ',', '.') }}</span>
+                </div>
+                @elseif($delivery_type === 'pickup')
+                <div class="flex justify-between text-sm text-gray-700 mt-2">
+                    <span>Ongkos Kirim</span>
+                    <span class="text-green-600 font-bold">Gratis (Pickup)</span>
+                </div>
+                @endif
+                <div class="flex justify-between text-xl font-black text-gray-900 border-t border-gray-300 pt-4 mt-2">
                     <span>Total Tagihan</span>
                     <span class="text-green-600">Rp {{ number_format($grand_total, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+</div> {{-- TUTUP ROOT ELEMENT --}}

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContactController;
 
@@ -21,3 +22,8 @@ Route::view('/syarat-ketentuan', 'pages.terms')->name('terms');
 Route::view('/kontak', 'pages.contact')->name('contact');
 
 Route::post('/kontak/kirim', [ContactController::class, 'send'])->name('contact.send');
+Route::get('/cek-kota', function () {
+    $response = Http::withHeaders(['key' => env('RAJAONGKIR_API_KEY')])
+        ->get('https://rajaongkir.komerce.id/api/v1/destination/city?province_id=11');
+    return $response->json();
+});
