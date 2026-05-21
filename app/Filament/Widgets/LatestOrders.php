@@ -32,7 +32,7 @@ class LatestOrders extends TableWidget
                             // ✅ Tambahkan ->with('items.product') agar loading data lebih cepat (mencegah N+1 query)
                             return $query->with('items.product')->where('created_at', '>=', now()->subMonth());
                         })
-->withColumns([
+                        ->withColumns([
                             // ✅ PILIH KOLOM YANG MAU DI-EXPORT DI SINI
                             Column::make('invoice_number')->heading('Invoice'),
                             Column::make('customer_name')->heading('Nama Pelanggan'),
@@ -45,9 +45,12 @@ class LatestOrders extends TableWidget
                                     })->implode(', ');
                                 }),
 
-                            Column::make('total_price')
-                                ->heading('Total Belanja')
-                                ->getStateUsing(fn ($record) => 'Rp ' . number_format($record->total_price, 0, ',', '.')),
+                            Column::make('subtotal_items')
+                            ->heading('Total Belanja (Produk)')
+                            ->getStateUsing(function ($record) {
+                            $subtotal = $record->items->sum(fn($item) => $item->price * $item->quantity);
+                              return 'Rp ' . number_format($subtotal, 0, ',', '.');
+                            }),
                             Column::make('customer_phone')->heading('No. WhatsApp/HP'),
                             Column::make('customer_address')->heading('Alamat Pengiriman'),
                             Column::make('status')->heading('Status Pesanan'),

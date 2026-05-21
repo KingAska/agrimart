@@ -159,7 +159,7 @@ class OrdersTable
                 ->color('secondary')
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->link()
-                ->label('Aksi')
+                ->label('Set')
             ])
             ->toolbarActions([])
             ->defaultSort('created_at', 'desc');

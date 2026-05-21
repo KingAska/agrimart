@@ -413,9 +413,6 @@ public function updatedCityId($value)
                                     <option value="{{ $prov['id'] }}">{{ $prov['name'] }}</option>
                                 @endforeach
                             </select>
-                            {{-- Tambah ini sementara untuk debug --}}
-                            <p class="text-xs text-gray-400">Jumlah provinsi: {{ count($provinces) }}</p>
-                            @error('province_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Kota / Kabupaten</label>

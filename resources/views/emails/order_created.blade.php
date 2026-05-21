@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Pesanan Dibuat</title>
+    <title>Pesanan Dibuat - {{ $order->invoice_number }}</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
     <h2 style="color: #16a34a;">Halo {{ $order->customer_name }}, Terima Kasih! 🌾</h2>
@@ -12,7 +12,9 @@
         <p style="margin: 0 0 10px 0;"><strong>Metode Pembayaran:</strong> {{ $order->payment_method === 'midtrans' ? 'Bayar Otomatis (Midtrans)' : 'Transfer Manual' }}</p>
         <p style="margin: 0 0 10px 0;"><strong>Status Pembayaran:</strong> <span style="color: #ef4444; font-weight: bold;">BELUM DIBAYAR</span></p>
         <hr style="border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
-        <p style="margin: 0 0 5px 0;"><strong>Alamat Pengiriman:</strong></p>
+        
+        {{-- Menampilkan alamat (untuk pickup maupun delivery, karena Anda butuh tracking) --}}
+        <p style="margin: 0 0 5px 0;"><strong>Alamat Pengiriman / Detail Lokasi:</strong></p>
         <p style="margin: 0;">{{ $order->customer_address }}</p>
     </div>
 
@@ -34,7 +36,7 @@
                 $subtotal_items += $item->price * $item->quantity; 
             @endphp
             <tr style="border-bottom: 1px solid #ddd;">
-                <td style="padding: 10px;">{{ $item->product->name }}</td>
+                <td style="padding: 10px;">{{ $item->product->name ?? 'Produk tidak ditemukan' }}</td>
                 <td style="padding: 10px; text-align: center;">{{ $item->quantity }}</td>
                 <td style="padding: 10px; text-align: right;">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
             </tr>
@@ -45,9 +47,23 @@
                 <td colspan="2" style="padding: 8px 10px; text-align: right; color: #555; font-size: 14px;">Subtotal Produk:</td>
                 <td style="padding: 8px 10px; text-align: right; color: #333; font-size: 14px; font-weight: bold;">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</td>
             </tr>
+            {{-- TAMPILKAN ONGKOS KIRIM jika ada (shipping_cost > 0) --}}
+            @if($order->shipping_cost > 0)
+            <tr>
+                <td colspan="2" style="padding: 8px 10px; text-align: right; color: #555; font-size: 14px;">Ongkos Kirim:</td>
+                <td style="padding: 8px 10px; text-align: right; color: #333; font-size: 14px; font-weight: bold;">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</td>
+            </tr>
+            @else
+            <tr>
+                <td colspan="2" style="padding: 8px 10px; text-align: right; color: #555; font-size: 14px;">Ongkos Kirim:</td>
+                <td style="padding: 8px 10px; text-align: right; color: #16a34a; font-size: 14px; font-weight: bold;">Gratis (Pickup)</td>
+            </tr>
+            @endif
             <tr style="border-top: 2px solid #ddd;">
                 <td colspan="2" style="padding: 15px 10px; text-align: right; font-weight: bold; font-size: 18px;">Total Tagihan:</td>
-                <td style="padding: 15px 10px; text-align: right; font-weight: bold; font-size: 18px; color: #16a34a;">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</td>
+                <td style="padding: 15px 10px; text-align: right; font-weight: bold; font-size: 18px; color: #16a34a;">
+                    Rp {{ number_format($order->total_price, 0, ',', '.') }}
+                </td>
             </tr>
         </tfoot>
     </table>
