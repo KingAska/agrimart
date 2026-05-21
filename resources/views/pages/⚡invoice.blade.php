@@ -14,7 +14,6 @@ new class extends Component
             ->with('items.product')
             ->firstOrFail();
 
-        // Hitung total harga murni dari barang belanjaan saja
         foreach ($this->order->items as $item) {
             $this->subtotal_items += $item->price * $item->quantity;
         }
@@ -43,17 +42,37 @@ new class extends Component
                 </div>
             </div>
 
+            {{-- Alamat --}}
             <div class="mb-6">
                 <p class="text-sm text-gray-500 font-semibold uppercase tracking-wider mb-1">Alamat Pengiriman / Detail</p>
                 <p class="text-base text-gray-850 font-medium">{{ $order->customer_address }}</p>
             </div>
 
+            {{-- Info Pengiriman --}}
+            <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <p class="text-sm text-gray-500 font-semibold uppercase tracking-wider mb-1">Tipe Pengiriman</p>
+                    <p class="font-bold text-gray-900">
+                        @if($order->shipping_courier === 'pickup' || strtolower($order->shipping_courier) === 'pickup' || empty($order->shipping_courier))
+                            🏪 Ambil di Toko (Pickup)
+                        @else
+                            🚚 Antar ke Alamat
+                        @endif
+                    </p>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <p class="text-sm text-gray-500 font-semibold uppercase tracking-wider mb-1">Kurir</p>
+                    <p class="font-bold text-gray-900">{{ $order->shipping_courier ?? '-' }}</p>
+                </div>
+            </div>
+
+            {{-- Instruksi Pembayaran --}}
             <div class="bg-gray-50 rounded-xl p-6 border border-gray-200 mb-8">
                 <h3 class="text-lg font-bold text-gray-900 mb-4">Instruksi Pembayaran</h3>
                 
                 @if($order->payment_method === 'manual')
                     <div class="space-y-4 text-gray-700">
-                        <p>Silakan lakukan transfer tepat sebesar <strong>Rp {{ number_format($subtotal_items, 0, ',', '.') }}</strong> ke salah satu rekening berikut:</p>
+                        <p>Silakan lakukan transfer tepat sebesar <strong>Rp {{ number_format($order->total_price, 0, ',', '.') }}</strong> ke salah satu rekening berikut:</p>
                         
                         <div class="bg-white p-4 rounded-lg border flex items-center gap-4 shadow-sm">
                             <div class="bg-orange-100 text-orange-500 font-black px-4 py-2 rounded">SEABANK</div>
@@ -89,15 +108,9 @@ new class extends Component
                             const payButton = document.getElementById('pay-button');
                             payButton.addEventListener('click', function () {
                                 window.snap.pay('{{ $order->snap_token }}', {
-                                    onSuccess: function (result) {
-                                        window.location.reload();
-                                    },
-                                    onPending: function (result) {
-                                        window.location.reload();
-                                    },
-                                    onError: function (result) {
-                                        alert("Pembayaran gagal!");
-                                    }
+                                    onSuccess: function (result) { window.location.reload(); },
+                                    onPending: function (result) { window.location.reload(); },
+                                    onError: function (result) { alert("Pembayaran gagal!"); }
                                 });
                             });
                         </script>
@@ -105,6 +118,7 @@ new class extends Component
                 @endif
             </div>
 
+            {{-- Rincian Pesanan --}}
             <h3 class="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Rincian Pesanan</h3>
             <div class="border rounded-lg p-4 mb-6 bg-white shadow-sm">
                 <ul class="divide-y divide-gray-200">
@@ -115,7 +129,7 @@ new class extends Component
                                 <span class="text-sm text-gray-500 block">{{ $item->quantity }} x Rp {{ number_format($item->price, 0, ',', '.') }}</span>
                             </div>
                             <span class="font-bold text-gray-900">Rp {{ number_format($item->price * $item->quantity, 0, ',', '.') }}</span>
-                        </li> 
+                        </li>
                     @endforeach
                 </ul>
 
@@ -124,12 +138,23 @@ new class extends Component
                         <span>Subtotal Produk</span>
                         <span class="font-semibold text-gray-900">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</span>
                     </div>
+                    @if($order->shipping_cost > 0)
+                    <div class="flex justify-between">
+                        <span>Ongkos Kirim ({{ $order->shipping_courier }})</span>
+                        <span class="font-semibold text-gray-900">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
+                    </div>
+                    @else
+                    <div class="flex justify-between">
+                        <span>Ongkos Kirim</span>
+                        <span class="font-semibold text-green-600">Gratis (Pickup)</span>
+                    </div>
+                    @endif
                 </div>
             </div>
 
             <div class="flex justify-between items-center text-2xl font-black text-gray-900 bg-green-50 p-4 rounded-lg border border-green-200">
                 <span>Total Tagihan</span>
-                <span class="text-green-600">Rp {{ number_format($subtotal_items, 0, ',', '.') }}</span>
+                <span class="text-green-600">Rp {{ number_format($order->total_price, 0, ',', '.') }}</span>
             </div>
 
         </div>

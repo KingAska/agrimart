@@ -71,17 +71,51 @@ new class extends Component
     }
     $this->grand_total = $this->total;
 
-    // Cache provinsi 24 jam
-    $this->provinces = \Illuminate\Support\Facades\Cache::remember('rajaongkir_provinces', 86400, function () {
+    $this->loadProvinces();
+
+}
+
+protected function loadProvinces()
+{
+    if ($this->delivery_type === 'pickup') {
+        // Emsifa - gratis unlimited
         try {
-            $response = Http::withHeaders($this->rajaongkirHeaders())
-                ->get('https://rajaongkir.komerce.id/api/v1/destination/province');
+            $response = Http::get('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json');
             if ($response->successful()) {
-                return $response->json()['data'] ?? [];
+                $this->provinces = $response->json();
             }
         } catch (\Exception $e) {}
-        return [];
-    });
+    } else {
+        // RajaOngkir - cache 24 jam
+        $this->provinces = \Illuminate\Support\Facades\Cache::remember('rajaongkir_provinces', 86400, function () {
+            try {
+                $response = Http::withHeaders($this->rajaongkirHeaders())
+                    ->get('https://rajaongkir.komerce.id/api/v1/destination/province');
+                if ($response->successful()) {
+                    return $response->json()['data'] ?? [];
+                }
+            } catch (\Exception $e) {}
+            return [];
+        });
+    }
+}
+
+public function updatedDeliveryType($value)
+{
+    // Reset semua saat ganti tipe
+    $this->provinces = [];
+    $this->cities = [];
+    $this->districts = [];
+    $this->province_id = '';
+    $this->province_name = '';
+    $this->city_id = '';
+    $this->city_name = '';
+    $this->district_id = '';
+    $this->district_name = '';
+    $this->shipping_services = [];
+    $this->shipping_cost = 0;
+    $this->grand_total = $this->total;
+    $this->loadProvinces();
 }
 
 public function updatedProvinceId($value)
@@ -96,20 +130,34 @@ public function updatedProvinceId($value)
     $this->grand_total = $this->total;
 
     if ($value) {
-        $selected = collect($this->provinces)->firstWhere('id', $value);
-        $this->province_name = $selected['name'] ?? '';
+        if ($this->delivery_type === 'pickup') {
+            $selected = collect($this->provinces)->firstWhere('id', $value);
+            $this->province_name = $selected['name'] ?? '';
 
-        // Cache kota per provinsi 24 jam
-        $this->cities = \Illuminate\Support\Facades\Cache::remember("rajaongkir_cities_{$value}", 86400, function () use ($value) {
             try {
-                $response = Http::withHeaders($this->rajaongkirHeaders())
-                    ->get("https://rajaongkir.komerce.id/api/v1/destination/city/{$value}");
+                $response = Http::get("https://www.emsifa.com/api-wilayah-indonesia/api/regencies/{$value}.json");
                 if ($response->successful()) {
-                    return $response->json()['data'] ?? [];
+                    $this->cities = $response->json();
                 }
-            } catch (\Exception $e) {}
-            return [];
-        });
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Emsifa error: ' . $e->getMessage());
+            }
+
+        } else {
+            $selected = collect($this->provinces)->firstWhere('id', $value);
+            $this->province_name = $selected['name'] ?? '';
+
+            $this->cities = \Illuminate\Support\Facades\Cache::remember("rajaongkir_cities_{$value}", 86400, function () use ($value) {
+                try {
+                    $response = Http::withHeaders($this->rajaongkirHeaders())
+                        ->get("https://rajaongkir.komerce.id/api/v1/destination/city/{$value}");
+                    if ($response->successful()) {
+                        return $response->json()['data'] ?? [];
+                    }
+                } catch (\Exception $e) {}
+                return [];
+            });
+        }
     }
 }
 
@@ -122,20 +170,26 @@ public function updatedCityId($value)
     $this->grand_total = $this->total;
 
     if ($value) {
-        $selected = collect($this->cities)->firstWhere('id', $value);
-        $this->city_name = $selected['name'] ?? '';
+        if ($this->delivery_type === 'pickup') {
+            // Emsifa - tidak perlu kecamatan untuk pickup
+            $selected = collect($this->cities)->firstWhere('id', $value);
+            $this->city_name = $selected['name'] ?? '';
+        } else {
+            // RajaOngkir
+            $selected = collect($this->cities)->firstWhere('id', $value);
+            $this->city_name = $selected['name'] ?? '';
 
-        // Cache kecamatan per kota 24 jam
-        $this->districts = \Illuminate\Support\Facades\Cache::remember("rajaongkir_districts_{$value}", 86400, function () use ($value) {
-            try {
-                $response = Http::withHeaders($this->rajaongkirHeaders())
-                    ->get("https://rajaongkir.komerce.id/api/v1/destination/district/{$value}");
-                if ($response->successful()) {
-                    return $response->json()['data'] ?? [];
-                }
-            } catch (\Exception $e) {}
-            return [];
-        });
+            $this->districts = \Illuminate\Support\Facades\Cache::remember("rajaongkir_districts_{$value}", 86400, function () use ($value) {
+                try {
+                    $response = Http::withHeaders($this->rajaongkirHeaders())
+                        ->get("https://rajaongkir.komerce.id/api/v1/destination/district/{$value}");
+                    if ($response->successful()) {
+                        return $response->json()['data'] ?? [];
+                    }
+                } catch (\Exception $e) {}
+                return [];
+            });
+        }
     }
 }
 
@@ -220,7 +274,9 @@ public function updatedCityId($value)
 
         $this->validate($rules, $messages);
 
-        $fullAddress = $this->address . ', Kec. ' . $this->district_name . ', ' . $this->city_name . ', Provinsi ' . $this->province_name;
+        $fullAddress = $this->delivery_type === 'pickup'
+    ? $this->address . ', ' . $this->city_name . ', Provinsi ' . $this->province_name
+    : $this->address . ', Kec. ' . $this->district_name . ', ' . $this->city_name . ', Provinsi ' . $this->province_name;
 
         DB::beginTransaction();
         try {
@@ -356,30 +412,37 @@ public function updatedCityId($value)
                                     <option value="{{ $prov['id'] }}">{{ $prov['name'] }}</option>
                                 @endforeach
                             </select>
+                            {{-- Tambah ini sementara untuk debug --}}
+                            <p class="text-xs text-gray-400">Jumlah provinsi: {{ count($provinces) }}</p>
                             @error('province_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Kota / Kabupaten</label>
-                            <select wire:model.live="city_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white" {{ empty($cities) ? 'disabled' : '' }}>
-                                <option value="">-- Pilih Kota/Kabupaten --</option>
-                                @foreach($cities as $city)
-                                    <option value="{{ $city['id'] }}">{{ $city['name'] }}</option>
-                                @endforeach
-                            </select>
+                            <select wire:model.live="city_id" 
+    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white {{ empty($cities) ? 'opacity-50 cursor-not-allowed' : '' }}">
+    <option value="">-- Pilih Kota/Kabupaten --</option>
+    @foreach($cities as $city)
+        <option value="{{ $city['id'] }}">{{ $city['name'] }}</option>
+    @endforeach
+</select>
                             @error('city_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
+                    {{-- Kecamatan - hanya untuk delivery --}}
+                    @if($delivery_type === 'delivery')
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Kecamatan</label>
-                        <select wire:model.live="district_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white" {{ empty($districts) ? 'disabled' : '' }}>
-                            <option value="">-- Pilih Kecamatan --</option>
-                            @foreach($districts as $district)
-                                <option value="{{ $district['id'] }}">{{ $district['name'] }}</option>
-                            @endforeach
-                        </select>
-                        @error('district_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                         <label class="block text-sm font-medium text-gray-700 mb-2">Kecamatan</label>
+                            <select wire:model.live="district_id"
+                     class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white {{ empty($districts) ? 'opacity-50 cursor-not-allowed' : '' }}">
+                 <option value="">-- Pilih Kecamatan --</option>
+                     @foreach($districts as $district)
+                 <option value="{{ $district['id'] }}">{{ $district['name'] }}</option>
+                      @endforeach
+                </select>
+                     @error('district_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>
+                    @endif
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Detail Alamat Jalan</label>
