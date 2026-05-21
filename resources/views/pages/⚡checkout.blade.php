@@ -292,8 +292,9 @@ public function updatedCityId($value)
                 'status'           => 'pending',
                 'shipping_courier' => $this->delivery_type === 'delivery'
                     ? strtoupper($this->courier) . ' - ' . $this->selected_service_label
-                    : 'Pickup',
+                    : 'pickup',
                 'shipping_cost'    => $this->shipping_cost,
+                'delivery_type'    => $this->delivery_type,   // <------ TAMBAHKAN BARIS INI
                 'latitude'         => null,
                 'longitude'        => null,
             ]);
@@ -465,12 +466,9 @@ public function updatedCityId($value)
                         <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kurir</label>
                         <select wire:model="courier" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-4 py-2 border bg-white">
                             <option value="">-- Pilih Kurir --</option>
-                            <option value="jne">JNE</option>
                             <option value="tiki">TIKI</option>
                             <option value="pos">POS Indonesia</option>
                             <option value="jnt">J&T Express</option>
-                            <option value="sicepat">SiCepat</option>
-                            <option value="anteraja">AnterAja</option>
                         </select>
                         @error('courier') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>

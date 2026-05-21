@@ -7,20 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     protected $fillable = [
-        'invoice_number',
-        'customer_name',
-        'customer_email',
-        'customer_phone',
-        'customer_address',
-        'total_price',
-        'payment_method',
-        'payment_status',
-        'status',
-        'snap_token',
-        'latitude',
-        'longitude',
-        'note'
-    ];
+    'invoice_number',
+    'customer_name',
+    'customer_email',
+    'customer_phone',
+    'customer_address',
+    'total_price',
+    'payment_method',
+    'payment_status',
+    'status',
+    'snap_token',
+    'latitude',
+    'longitude',
+    'note',
+    'shipping_cost',
+    'delivery_type',
+];
 
     public function items()
     {

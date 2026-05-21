@@ -2,20 +2,20 @@
 
 namespace App\Filament\Resources\Orders\Schemas;
 
-use Filament\Actions\Action;
+// use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Radio;
-use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Grid;
+// use Filament\Notifications\Notification;
+// use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Http;
+// use Illuminate\Support\Facades\Http;
 
 class OrderForm
 {
@@ -33,48 +33,33 @@ class OrderForm
         return $schema
             ->components([
                 Group::make()->schema([
-                    Section::make('Informasi Pelanggan')->schema([
-                        TextInput::make('customer_name')
-                            ->label('Nama Lengkap (wajib)')
-                            ->required(),
-                        TextInput::make('customer_email')
-                            ->label('Email')
-                            ->email(),
-                        TextInput::make('customer_phone')
-                            ->label('No. WhatsApp / HP'),
-                            
-                        Radio::make('delivery_type')
-                            ->label('Tipe Pesanan')
-                            ->options([
-                                'pickup' => 'Ambil di Toko (Pickup)',
-                                'delivery' => 'Antar Pengiriman',
-                            ])
-                            ->afterStateHydrated(function (Set $set, $record) {
-                                if ($record) {
-                                    if (str_contains((string) $record->customer_address, 'Ambil di Toko')) {
-                                        $set('delivery_type', 'pickup');
-                                    } else {
-                                        $set('delivery_type', 'delivery');
-                                    }
-                                } else {
-                                    $set('delivery_type', 'pickup');
-                                }
-                            })
-                            ->dehydrated(false)
-                            ->inline()
-                            ->live()
-                            ->columnSpanFull(),
+Section::make('Informasi Pelanggan')->schema([
+    TextInput::make('customer_name')
+        ->label('Nama Lengkap (wajib)')
+        ->required(),
+    TextInput::make('customer_email')
+        ->label('Email')
+        ->email(),
+    TextInput::make('customer_phone')
+        ->label('No. WhatsApp / HP'),
+        
+    Radio::make('delivery_type')
+        ->label('Tipe Pesanan')
+        ->options([
+            'pickup' => 'Ambil di Toko (Pickup)',
+            'delivery' => 'Antar Pengiriman',
+        ])
+        ->required()
+        ->inline()
+        ->live()
+        ->columnSpanFull(),
 
-                        // Alamat hanya ditampilkan jika tipe = delivery
-                        Group::make()->schema([
-                            Textarea::make('customer_address')
-                                ->label('Alamat Pengiriman')
-                                ->required()
-                                ->columnSpanFull(),
-                        ])
-                        ->columnSpanFull()
-                        ->visible(fn (Get $get) => $get('delivery_type') === 'delivery'),
-                    ])->columns(2),
+    // Alamat SELALU ditampilkan (tanpa kondisi visible)
+    Textarea::make('customer_address')
+        ->label('Alamat (untuk pickup dan delivery)')
+        ->required()
+        ->columnSpanFull(),
+])->columns(2),
 
                     Section::make('Produk yang Dipesan')->schema([
                         Repeater::make('items')
