@@ -58,74 +58,86 @@ new class extends Component
         return ['key' => env('RAJAONGKIR_API_KEY')];
     }
 
-    public function mount()
-    {
-        $this->cart = Session::get('cart', []);
+   public function mount()
+{
+    $this->cart = Session::get('cart', []);
 
-        if (empty($this->cart)) {
-            return redirect()->route('home');
-        }
+    if (empty($this->cart)) {
+        return redirect()->route('home');
+    }
 
-        foreach ($this->cart as $item) {
-            $this->total += $item['price'] * $item['quantity'];
-        }
-        $this->grand_total = $this->total;
+    foreach ($this->cart as $item) {
+        $this->total += $item['price'] * $item['quantity'];
+    }
+    $this->grand_total = $this->total;
 
+    // Cache provinsi 24 jam
+    $this->provinces = \Illuminate\Support\Facades\Cache::remember('rajaongkir_provinces', 86400, function () {
         try {
             $response = Http::withHeaders($this->rajaongkirHeaders())
                 ->get('https://rajaongkir.komerce.id/api/v1/destination/province');
             if ($response->successful()) {
-                $this->provinces = $response->json()['data'] ?? [];
+                return $response->json()['data'] ?? [];
             }
         } catch (\Exception $e) {}
-    }
+        return [];
+    });
+}
 
-    public function updatedProvinceId($value)
-    {
-        $this->cities = [];
-        $this->city_id = '';
-        $this->city_name = '';
-        $this->districts = [];
-        $this->district_id = '';
-        $this->shipping_services = [];
-        $this->shipping_cost = 0;
-        $this->grand_total = $this->total;
+public function updatedProvinceId($value)
+{
+    $this->cities = [];
+    $this->city_id = '';
+    $this->city_name = '';
+    $this->districts = [];
+    $this->district_id = '';
+    $this->shipping_services = [];
+    $this->shipping_cost = 0;
+    $this->grand_total = $this->total;
 
-        if ($value) {
-            $selected = collect($this->provinces)->firstWhere('id', $value);
-            $this->province_name = $selected['name'] ?? '';
+    if ($value) {
+        $selected = collect($this->provinces)->firstWhere('id', $value);
+        $this->province_name = $selected['name'] ?? '';
 
+        // Cache kota per provinsi 24 jam
+        $this->cities = \Illuminate\Support\Facades\Cache::remember("rajaongkir_cities_{$value}", 86400, function () use ($value) {
             try {
                 $response = Http::withHeaders($this->rajaongkirHeaders())
                     ->get("https://rajaongkir.komerce.id/api/v1/destination/city/{$value}");
                 if ($response->successful()) {
-                    $this->cities = $response->json()['data'] ?? [];
+                    return $response->json()['data'] ?? [];
                 }
             } catch (\Exception $e) {}
-        }
+            return [];
+        });
     }
+}
 
-    public function updatedCityId($value)
-    {
-        $this->districts = [];
-        $this->district_id = '';
-        $this->shipping_services = [];
-        $this->shipping_cost = 0;
-        $this->grand_total = $this->total;
+public function updatedCityId($value)
+{
+    $this->districts = [];
+    $this->district_id = '';
+    $this->shipping_services = [];
+    $this->shipping_cost = 0;
+    $this->grand_total = $this->total;
 
-        if ($value) {
-            $selected = collect($this->cities)->firstWhere('id', $value);
-            $this->city_name = $selected['name'] ?? '';
+    if ($value) {
+        $selected = collect($this->cities)->firstWhere('id', $value);
+        $this->city_name = $selected['name'] ?? '';
 
+        // Cache kecamatan per kota 24 jam
+        $this->districts = \Illuminate\Support\Facades\Cache::remember("rajaongkir_districts_{$value}", 86400, function () use ($value) {
             try {
                 $response = Http::withHeaders($this->rajaongkirHeaders())
                     ->get("https://rajaongkir.komerce.id/api/v1/destination/district/{$value}");
                 if ($response->successful()) {
-                    $this->districts = $response->json()['data'] ?? [];
+                    return $response->json()['data'] ?? [];
                 }
             } catch (\Exception $e) {}
-        }
+            return [];
+        });
     }
+}
 
     public function updatedDistrictId($value)
     {
