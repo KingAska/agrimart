@@ -17,8 +17,6 @@ class Order extends Model
     'payment_status',
     'status',
     'snap_token',
-    'latitude',
-    'longitude',
     'note',
     'shipping_cost',
     'delivery_type',

@@ -22,8 +22,6 @@ return new class extends Migration
             $table->string('customer_phone')->nullable();
             $table->text('customer_address')->nullable();
 
-            $table->string('latitude')->nullable();
-            $table->string('longitude')->nullable();
             $table->text('note')->nullable();
             
             $table->enum('payment_method', ['manual', 'midtrans']);

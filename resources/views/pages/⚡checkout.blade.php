@@ -295,8 +295,6 @@ public function updatedCityId($value)
                     : 'pickup',
                 'shipping_cost'    => $this->shipping_cost,
                 'delivery_type'    => $this->delivery_type,   // <------ TAMBAHKAN BARIS INI
-                'latitude'         => null,
-                'longitude'        => null,
             ]);
 
             foreach ($this->cart as $item) {
