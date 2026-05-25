@@ -16,6 +16,8 @@
         {{-- Menampilkan alamat (untuk pickup maupun delivery, karena Anda butuh tracking) --}}
         <p style="margin: 0 0 5px 0;"><strong>Alamat Pengiriman / Detail Lokasi:</strong></p>
         <p style="margin: 0;">{{ $order->customer_address }}</p>
+        <p style="margin: 0 0 5px 0;"><strong>Kurir:</strong></p>
+        <p style="margin: 0;">{{ $order->shipping_courier ?? '-' }}</p>
     </div>
 
     <h3>Rincian Barang Belanjaan:</h3>

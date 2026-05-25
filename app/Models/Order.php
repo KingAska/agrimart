@@ -18,6 +18,7 @@ class Order extends Model
     'status',
     'snap_token',
     'note',
+    'shipping_courier',
     'shipping_cost',
     'delivery_type',
 ];

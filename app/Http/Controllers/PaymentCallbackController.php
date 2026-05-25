@@ -67,7 +67,7 @@ class PaymentCallbackController extends Controller
         $token = env('FONNTE_TOKEN');
 
         if (!$token) {
-            \Log::warning('FONNTE_TOKEN belum diatur di file .env');
+            Log::warning('FONNTE_TOKEN belum diatur di file .env');
             return;
         }
 
@@ -92,7 +92,7 @@ class PaymentCallbackController extends Controller
 
     } catch (\Exception $e) {
 
-        \Log::error(
+        Log::error(
             "Gagal mengirim notifikasi WhatsApp: " . $e->getMessage()
         );
     }

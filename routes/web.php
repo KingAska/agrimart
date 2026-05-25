@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MidtransWebhookController;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContactController;
@@ -27,3 +28,5 @@ Route::get('/cek-kota', function () {
         ->get('https://rajaongkir.komerce.id/api/v1/destination/city?province_id=11');
     return $response->json();
 });
+
+Route::post('/midtrans/webhook', [MidtransWebhookController::class, 'handle']);

@@ -42,7 +42,6 @@ Section::make('Informasi Pelanggan')->schema([
         ->email(),
     TextInput::make('customer_phone')
         ->label('No. WhatsApp / HP'),
-        
     Radio::make('delivery_type')
         ->label('Tipe Pesanan')
         ->options([
@@ -53,6 +52,10 @@ Section::make('Informasi Pelanggan')->schema([
         ->inline()
         ->live()
         ->columnSpanFull(),
+    TextInput::make('shipping_courier')
+    ->label('Kurir / Layanan Pengiriman')
+    ->disabled()  // atau required() jika ingin bisa edit
+    ->columnSpanFull(),
 
     // Alamat SELALU ditampilkan (tanpa kondisi visible)
     Textarea::make('customer_address')

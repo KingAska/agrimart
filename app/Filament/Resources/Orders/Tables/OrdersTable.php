@@ -7,7 +7,6 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -93,20 +92,6 @@ class OrdersTable
                 ActionGroup::make([
                     ViewAction::make()->color('gray'),
                     EditAction::make()->color('primary'),
-
-                    // Aksi Lihat Lokasi – HANYA menampilkan alamat (tanpa peta/koordinat)
-                    Action::make('lihat_alamat')
-                        ->label('Lihat Lokasi')
-                        ->icon('heroicon-o-map-pin')
-                        ->color('info')
-                        ->modalHeading('Lokasi Pengiriman')
-                        ->modalSubmitAction(false)
-                        ->modalCancelActionLabel('Tutup')
-                        ->form([
-                            Placeholder::make('customer_address')
-                                ->label('Detail Alamat:')
-                                ->content(fn ($record) => $record->customer_address ?? 'Alamat tidak tersedia'),
-                        ]),
 
                     Action::make('ubah_status_pesanan')
                         ->visible(fn ($record) => $record->status !== 'completed')

@@ -140,7 +140,7 @@ new class extends Component
                     </div>
                     @if($order->shipping_cost > 0)
                     <div class="flex justify-between">
-                        <span>Ongkos Kirim ({{ $order->shipping_courier }})</span>
+                        <span>Ongkos Kirim</span>
                         <span class="font-semibold text-gray-900">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
                     </div>
                     @else
